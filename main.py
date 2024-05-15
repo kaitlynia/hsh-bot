@@ -97,9 +97,9 @@ class Bot(discord.Client):
       if len(pre_post) == 2 and pre_post[0] == '':
         cmd_args = pre_post[1].split(None, 1)
         if message.author.guild_permissions.administrator and cmd_args[0] in admin_commands:
-          admin_commands[cmd_args[0]](message, (cmd_args[1:] or [''])[0])
+          await admin_commands[cmd_args[0]](message, (cmd_args[1:] or [''])[0])
         elif cmd_args[0] in commands:
-          commands[cmd_args[0]](message, (cmd_args[1:] or [''])[0])
+          await commands[cmd_args[0]](message, (cmd_args[1:] or [''])[0])
 
 bot = Bot(discord.Intents.all())
 bot.run(os.getenv('token'))
