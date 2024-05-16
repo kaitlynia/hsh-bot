@@ -10,10 +10,14 @@ load_dotenv()
 
 data = {
   'prefix': '^',
+  'welcome_channel': 1168562785156866068,
+  'welcome_message': '{} Welcome to HSH!\n\nPlease read the rules and follow the instructions for accessing the server.',
   'verify_channel': 1168539275298619513,
   'verify_role': 1240386768541454436,
-  'verify_password': 'hshhome',
+  'verify_password': 'homehsh',
 }
+
+welcomed = set()
 
 def save_data():
   with open('data.json', 'w') as f:
@@ -36,9 +40,19 @@ async def prefix_command(message: discord.Message, args: str):
   else:
     await message.channel.send(f'Command prefix: `{data["prefix"]}`')
 
+async def welcomechannel_command(message: discord.Message, args: str):
+  if args.isnumeric() and len(args) >= 16:
+    data['welcome_channel'] = int(args)
+    save_data()
+    await message.channel.send(f'Welcome channel ID changed to `{args}`')
+  elif args == '':
+    await message.channel.send(f'Welcome channel ID: `{data["welcome_channel"]}`')
+  else:
+    await message.channel.send('Invalid channel ID')
+
 async def verifychannel_command(message: discord.Message, args: str):
   if args.isnumeric() and len(args) >= 16:
-    data['verify_channel'] = args
+    data['verify_channel'] = int(args)
     save_data()
     await message.channel.send(f'Verify channel ID changed to `{args}`')
   elif args == '':
@@ -48,7 +62,7 @@ async def verifychannel_command(message: discord.Message, args: str):
 
 async def verifyrole_command(message: discord.Message, args: str):
   if args.isnumeric() and len(args) >= 16:
-    data['verify_role'] = args
+    data['verify_role'] = int(args)
     save_data()
     await message.channel.send(f'Verify role ID changed to `{args}`')
   elif args == '':
@@ -70,8 +84,9 @@ async def verifypassword_command(message: discord.Message, args: str):
 admin_commands = {
   'adminhelp': adminhelp_command,
   'prefix': prefix_command,
-  'verifyrole': verifyrole_command,
+  'welcomechannel': welcomechannel_command,
   'verifychannel': verifychannel_command,
+  'verifyrole': verifyrole_command,
   'verifypassword': verifypassword_command,
 }
 
@@ -86,11 +101,22 @@ class Bot(discord.Client):
   def __init__(self, intents):
     super().__init__(intents=intents)
 
+  async def on_member_join(self, member: discord.Member):
+    if member.id in welcomed: return
+    welcome_msg = data['welcome_message'].format(member.mention)
+    await member.guild.get_channel(data['welcome_channel']).send(welcome_msg)
+    welcomed.add(member.id)
+
   async def on_message(self, message: discord.Message):
+    if message.author.bot: return
     if message.channel.id == data['verify_channel']:
       password = message.content.replace(' ', '').lower()
       if password == data['verify_password']:
         await message.author.add_roles(message.guild.get_role(data['verify_role']))
+        await message.add_reaction('✅')
+      else:
+        await message.add_reaction('❌')
+      await asyncio.sleep(2)
       await message.delete()
     else:
       pre_post = message.content.split(data['prefix'], 1)
